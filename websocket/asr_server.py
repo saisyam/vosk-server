@@ -36,9 +36,18 @@ model = Model(vosk_model_path)
 pool = concurrent.futures.ThreadPoolExecutor((os.cpu_count() or 1))
 loop = asyncio.get_event_loop()
 
+def process_result(result):
+    tmp_result = json.loads(result)
+    res_array = tmp_result['result']
+    total_conf = 0.0
+    for item in res_array:
+        total_conf = total_conf + item['conf']
+    tmp_result['confidence'] = round(total_conf/len(res_array), 2)
+    return json.dumps(tmp_result)
+
 def process_chunk(rec, message):
     if message == '{"eof" : 1}':
-        return rec.FinalResult(), True
+        return process_result(rec.FinalResult()), True
     elif rec.AcceptWaveform(message):
         return rec.Result(), False
     else:
